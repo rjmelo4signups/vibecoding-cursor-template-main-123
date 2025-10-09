@@ -1,0 +1,13 @@
+BambooHR Job Listings - Improved Scraper
+============================================================
+
+Page Title: BambooHR
+Page URL: https://people.bamboohr.com/careers
+Total findings: 6
+
+1. LINK: Link: Office Manager -> https://people.bamboohr.com/careers/122
+2. LINK: Link: Program Coordinator -> https://people.bamboohr.com/careers/124
+3. TITLE: Program Coordinator
+4. TITLE: Office Manager
+5. CLICKABLE: Office Manager
+6. CLICKABLE: Program Coordinator

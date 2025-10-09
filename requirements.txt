@@ -1,0 +1,11 @@
+# Dev environment
+pip
+autopep8
+pyautogui
+selenium
+
+# Video downloading
+yt-dlp
+
+# Streamlit
+streamlit
