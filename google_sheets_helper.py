@@ -23,9 +23,19 @@ def get_google_sheets_service():
             credentials_json = base64.b64decode(st.secrets.GOOGLE_CREDENTIALS).decode('utf-8')
             credentials_info = json.loads(credentials_json)
             
-            # Use credentials from secrets
-            flow = InstalledAppFlow.from_client_config(credentials_info, SCOPES)
-            creds = flow.run_local_server(port=0)
+            # For cloud deployment, we need to use service account or stored tokens
+            # Check if we have stored tokens in secrets
+            if 'GOOGLE_TOKENS' in st.secrets:
+                # Use stored tokens
+                tokens_json = base64.b64decode(st.secrets.GOOGLE_TOKENS).decode('utf-8')
+                tokens_info = json.loads(tokens_json)
+                creds = Credentials.from_authorized_user_info(tokens_info, SCOPES)
+            else:
+                # For cloud deployment, we need to use a different approach
+                # This requires setting up a service account or manual token generation
+                st.error("Google Sheets authentication not configured for cloud deployment. Please set up GOOGLE_TOKENS in your Streamlit secrets.")
+                return None
+                
         except Exception as e:
             st.error(f"Error with cloud credentials: {str(e)}")
             return None

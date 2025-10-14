@@ -19,6 +19,7 @@ __pycache__/
 credentials.json
 credentials_streamlit.json
 token.pickle
+cloud_tokens.txt
 
 # Distribution / Packaging
 .Python
