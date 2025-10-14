@@ -4,10 +4,12 @@ This guide will help you set up the Gemini-powered voice input feature for your 
 
 ## Step 1: Get Gemini API Key
 
-1. Go to [Google AI Studio](https://makersuite.google.com/app/apikey)
+1. Go to [Google AI Studio](https://aistudio.google.com/app/apikey)
 2. Sign in with your Google account
 3. Click "Create API Key"
 4. Copy the generated API key
+
+**Note**: Make sure you're using the correct Google AI Studio URL (aistudio.google.com, not makersuite.google.com)
 
 ## Step 2: Configure Streamlit Secrets
 

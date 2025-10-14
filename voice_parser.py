@@ -18,7 +18,38 @@ def parse_expense_with_gemini(transcribed_text):
             return None
             
         genai.configure(api_key=st.secrets.GEMINI_API_KEY)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        # Try to list available models for debugging
+        try:
+            models = genai.list_models()
+            available_models = [model.name for model in models if 'gemini' in model.name.lower()]
+            st.info(f"Available models: {available_models}")
+        except Exception as e:
+            st.warning(f"Could not list models: {e}")
+        
+        # Try different model names
+        model_names_to_try = [
+            'gemini-1.5-flash',
+            'gemini-1.5-flash-001', 
+            'gemini-1.5-pro',
+            'gemini-1.5-pro-001',
+            'gemini-pro',
+            'gemini-1.0-pro'
+        ]
+        
+        model = None
+        for model_name in model_names_to_try:
+            try:
+                model = genai.GenerativeModel(model_name)
+                st.success(f"Using model: {model_name}")
+                break
+            except Exception as e:
+                st.warning(f"Model {model_name} failed: {e}")
+                continue
+        
+        if model is None:
+            st.error("No working Gemini model found. Please check your API key and try again.")
+            return None
         
         # Create prompt for Gemini
         prompt = f"""
