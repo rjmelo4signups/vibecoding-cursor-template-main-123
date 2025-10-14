@@ -45,7 +45,7 @@ voice_text_input = st.sidebar.text_input("Describe your expense:", placeholder="
 
 # Process text-based voice input
 if voice_text_input and st.sidebar.button("🤖 Parse with Gemini"):
-    with st.sidebar.spinner("Parsing with Gemini..."):
+    with st.spinner("Parsing with Gemini..."):
         parsed_expense = parse_expense_with_gemini(voice_text_input)
         
         if parsed_expense:
