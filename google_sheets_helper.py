@@ -1,10 +1,13 @@
 import os
+import base64
+import json
 import pickle
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+import streamlit as st
 
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
@@ -12,22 +15,41 @@ SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 def get_google_sheets_service():
     """Get authenticated Google Sheets service."""
     creds = None
-    # The file token.pickle stores the user's access and refresh tokens.
-    if os.path.exists('token.pickle'):
-        with open('token.pickle', 'rb') as token:
-            creds = pickle.load(token)
     
-    # If there are no (valid) credentials available, let the user log in.
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
+    # Check if we're in Streamlit Cloud (has GOOGLE_CREDENTIALS in secrets)
+    if 'GOOGLE_CREDENTIALS' in st.secrets:
+        try:
+            # Decode credentials from Streamlit secrets
+            credentials_json = base64.b64decode(st.secrets.GOOGLE_CREDENTIALS).decode('utf-8')
+            credentials_info = json.loads(credentials_json)
+            
+            # Use credentials from secrets
+            flow = InstalledAppFlow.from_client_config(credentials_info, SCOPES)
             creds = flow.run_local_server(port=0)
-        # Save the credentials for the next run
-        with open('token.pickle', 'wb') as token:
-            pickle.dump(creds, token)
+        except Exception as e:
+            st.error(f"Error with cloud credentials: {str(e)}")
+            return None
+    else:
+        # Local development - use files
+        if os.path.exists('token.pickle'):
+            with open('token.pickle', 'rb') as token:
+                creds = pickle.load(token)
+        
+        # If there are no (valid) credentials available, let the user log in.
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                if os.path.exists('credentials.json'):
+                    flow = InstalledAppFlow.from_client_secrets_file(
+                        'credentials.json', SCOPES)
+                    creds = flow.run_local_server(port=0)
+                else:
+                    st.error("credentials.json not found. Please set up Google Sheets integration.")
+                    return None
+            # Save the credentials for the next run
+            with open('token.pickle', 'wb') as token:
+                pickle.dump(creds, token)
 
     service = build('sheets', 'v4', credentials=creds)
     return service
