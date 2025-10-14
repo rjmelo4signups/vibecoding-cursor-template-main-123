@@ -71,20 +71,42 @@ st.sidebar.markdown("---")
 # Manual input fields
 st.sidebar.subheader("✏️ Manual Input")
 
+# Initialize form values
+if 'expense_name' not in st.session_state:
+    st.session_state.expense_name = ""
+if 'expense_amount' not in st.session_state:
+    st.session_state.expense_amount = 0.0
+if 'expense_category' not in st.session_state:
+    st.session_state.expense_category = "Other"
+
 # Auto-fill form if we have parsed data
 if hasattr(st.session_state, 'parsed_item'):
-    expense_name = st.sidebar.text_input("What did you buy?", value=st.session_state.parsed_item)
-    expense_amount = st.sidebar.number_input("How much did it cost?", min_value=0.0, step=0.01, format="%.2f", value=st.session_state.parsed_amount)
-    expense_category = st.sidebar.selectbox("Category", ["Groceries", "Restaurants", "Cafeteria", "Transportation", "Entertainment", "Shopping", "Bills", "Donations", "Other"], index=["Groceries", "Restaurants", "Cafeteria", "Transportation", "Entertainment", "Shopping", "Bills", "Donations", "Other"].index(st.session_state.parsed_category))
+    st.session_state.expense_name = st.session_state.parsed_item
+    st.session_state.expense_amount = st.session_state.parsed_amount
+    st.session_state.expense_category = st.session_state.parsed_category
     
     # Clear the parsed data after using it
     del st.session_state.parsed_item
     del st.session_state.parsed_amount
     del st.session_state.parsed_category
-else:
-    expense_name = st.sidebar.text_input("What did you buy?")
-    expense_amount = st.sidebar.number_input("How much did it cost?", min_value=0.0, step=0.01, format="%.2f")
-    expense_category = st.sidebar.selectbox("Category", ["Groceries", "Restaurants", "Cafeteria", "Transportation", "Entertainment", "Shopping", "Bills", "Donations", "Other"])
+
+# Form fields
+expense_name = st.sidebar.text_input("What did you buy?", value=st.session_state.expense_name, key="expense_name_input")
+expense_amount = st.sidebar.number_input("How much did it cost?", min_value=0.0, step=0.01, format="%.2f", value=st.session_state.expense_amount, key="expense_amount_input")
+
+# Category selection with proper index
+categories = ["Groceries", "Restaurants", "Cafeteria", "Transportation", "Entertainment", "Shopping", "Bills", "Donations", "Other"]
+try:
+    category_index = categories.index(st.session_state.expense_category)
+except ValueError:
+    category_index = 8  # Default to "Other"
+
+expense_category = st.sidebar.selectbox("Category", categories, index=category_index, key="expense_category_input")
+
+# Update session state with current values
+st.session_state.expense_name = expense_name
+st.session_state.expense_amount = expense_amount
+st.session_state.expense_category = expense_category
 
 # Add expense button
 if st.sidebar.button("Add Expense"):
