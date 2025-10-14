@@ -17,6 +17,7 @@ __pycache__/
 
 # Google Sheets API Credentials
 credentials.json
+credentials_streamlit.json
 token.pickle
 
 # Distribution / Packaging
