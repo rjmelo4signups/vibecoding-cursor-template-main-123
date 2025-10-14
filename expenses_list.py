@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-from google_sheets_helper import append_expense_to_sheet, setup_sheet_headers, load_expenses_from_sheet, clear_all_expenses_from_sheet
+from google_sheets_helper import append_expense_to_sheet, setup_sheet_headers, load_expenses_from_sheet, clear_all_expenses_from_sheet, delete_expense_from_sheet
 from voice_parser import parse_expense_with_gemini, get_voice_input_examples
 # Audio recording will be added in future versions
 
@@ -52,10 +52,36 @@ if voice_text_input and st.sidebar.button("🤖 Parse with Gemini"):
             st.sidebar.success("✅ Parsed successfully!")
             st.sidebar.json(parsed_expense)
             
-            # Auto-fill the form with parsed data
-            st.session_state.parsed_item = parsed_expense['item']
-            st.session_state.parsed_amount = parsed_expense['amount']
-            st.session_state.parsed_category = parsed_expense['category']
+            # Automatically add the expense to the list
+            new_expense = {
+                "Date": datetime.now().strftime("%Y-%m-%d"),
+                "Item": parsed_expense['item'],
+                "Amount": parsed_expense['amount'],
+                "Category": parsed_expense['category']
+            }
+            
+            # Add to expenses list
+            st.session_state.expenses.append(new_expense)
+            
+            # Try to save to Google Sheets if configured
+            if SPREADSHEET_ID != "your-spreadsheet-id-here":
+                try:
+                    # Setup headers if needed
+                    setup_sheet_headers(SPREADSHEET_ID)
+                    
+                    # Append to Google Sheet
+                    success, message = append_expense_to_sheet(SPREADSHEET_ID, new_expense)
+                    if success:
+                        st.sidebar.success(f"✅ Added {parsed_expense['item']} for €{parsed_expense['amount']:.2f} and saved to Google Sheets!")
+                    else:
+                        st.sidebar.warning(f"⚠️ Added {parsed_expense['item']} for €{parsed_expense['amount']:.2f} (Google Sheets: {message})")
+                except Exception as e:
+                    st.sidebar.warning(f"⚠️ Added {parsed_expense['item']} for €{parsed_expense['amount']:.2f} (Google Sheets error: {str(e)})")
+            else:
+                st.sidebar.success(f"✅ Added {parsed_expense['item']} for €{parsed_expense['amount']:.2f}!")
+            
+            # Clear the input field
+            st.rerun()
         else:
             st.sidebar.error("❌ Could not parse the expense. Please try again or use manual input.")
 
@@ -70,43 +96,9 @@ st.sidebar.markdown("---")
 
 # Manual input fields
 st.sidebar.subheader("✏️ Manual Input")
-
-# Initialize form values
-if 'expense_name' not in st.session_state:
-    st.session_state.expense_name = ""
-if 'expense_amount' not in st.session_state:
-    st.session_state.expense_amount = 0.0
-if 'expense_category' not in st.session_state:
-    st.session_state.expense_category = "Other"
-
-# Auto-fill form if we have parsed data
-if hasattr(st.session_state, 'parsed_item'):
-    st.session_state.expense_name = st.session_state.parsed_item
-    st.session_state.expense_amount = st.session_state.parsed_amount
-    st.session_state.expense_category = st.session_state.parsed_category
-    
-    # Clear the parsed data after using it
-    del st.session_state.parsed_item
-    del st.session_state.parsed_amount
-    del st.session_state.parsed_category
-
-# Form fields
-expense_name = st.sidebar.text_input("What did you buy?", value=st.session_state.expense_name, key="expense_name_input")
-expense_amount = st.sidebar.number_input("How much did it cost?", min_value=0.0, step=0.01, format="%.2f", value=st.session_state.expense_amount, key="expense_amount_input")
-
-# Category selection with proper index
-categories = ["Groceries", "Restaurants", "Cafeteria", "Transportation", "Entertainment", "Shopping", "Bills", "Donations", "Other"]
-try:
-    category_index = categories.index(st.session_state.expense_category)
-except ValueError:
-    category_index = 8  # Default to "Other"
-
-expense_category = st.sidebar.selectbox("Category", categories, index=category_index, key="expense_category_input")
-
-# Update session state with current values
-st.session_state.expense_name = expense_name
-st.session_state.expense_amount = expense_amount
-st.session_state.expense_category = expense_category
+expense_name = st.sidebar.text_input("What did you buy?")
+expense_amount = st.sidebar.number_input("How much did it cost?", min_value=0.0, step=0.01, format="%.2f")
+expense_category = st.sidebar.selectbox("Category", ["Groceries", "Restaurants", "Cafeteria", "Transportation", "Entertainment", "Shopping", "Bills", "Donations", "Other"])
 
 # Add expense button
 if st.sidebar.button("Add Expense"):
@@ -148,8 +140,42 @@ if st.session_state.expenses:
     # Convert to DataFrame for better display
     df = pd.DataFrame(st.session_state.expenses)
     
-    # Display expenses table
-    st.dataframe(df, use_container_width=True)
+    # Display expenses table with delete buttons
+    st.subheader("Your Expenses")
+    
+    # Create a custom display with delete buttons
+    for i, expense in enumerate(st.session_state.expenses):
+        col1, col2, col3, col4, col5 = st.columns([2, 1, 1, 1, 1])
+        
+        with col1:
+            st.write(f"**{expense['Item']}**")
+        with col2:
+            st.write(f"€{expense['Amount']:.2f}")
+        with col3:
+            st.write(expense['Category'])
+        with col4:
+            st.write(expense['Date'])
+        with col5:
+            if st.button("🗑️", key=f"delete_{i}", help="Delete this expense"):
+                # Delete from local list
+                del st.session_state.expenses[i]
+                
+                # Delete from Google Sheets if configured
+                if SPREADSHEET_ID != "your-spreadsheet-id-here":
+                    try:
+                        success, message = delete_expense_from_sheet(SPREADSHEET_ID, expense)
+                        if success:
+                            st.success(f"✅ Deleted {expense['Item']} from both app and Google Sheets!")
+                        else:
+                            st.warning(f"⚠️ Deleted from app, but Google Sheets error: {message}")
+                    except Exception as e:
+                        st.warning(f"⚠️ Deleted from app, but Google Sheets error: {str(e)}")
+                else:
+                    st.success(f"✅ Deleted {expense['Item']} from app!")
+                
+                st.rerun()
+        
+        st.divider()
     
     # Calculate and display total
     total_spent = df['Amount'].sum()

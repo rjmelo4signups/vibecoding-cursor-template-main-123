@@ -203,3 +203,63 @@ def clear_all_expenses_from_sheet(spreadsheet_id):
         return False, f"Google Sheets error: {error}"
     except Exception as error:
         return False, f"Error clearing expenses: {error}"
+
+def delete_expense_from_sheet(spreadsheet_id, expense_data):
+    """
+    Delete a specific expense from Google Sheet by finding and removing the row.
+    
+    Args:
+        spreadsheet_id: The ID of the Google Sheet
+        expense_data: Dictionary with expense information to delete
+        
+    Returns:
+        Tuple of (success, message)
+    """
+    try:
+        service = get_google_sheets_service()
+        
+        # Get all data from the sheet
+        result = service.spreadsheets().values().get(
+            spreadsheetId=spreadsheet_id,
+            range='Sheet1!A2:D'
+        ).execute()
+        
+        values = result.get('values', [])
+        
+        # Find the row to delete
+        row_to_delete = None
+        for i, row in enumerate(values):
+            if len(row) >= 4:
+                if (row[0] == expense_data['Date'] and 
+                    row[1] == expense_data['Item'] and 
+                    str(row[2]) == str(expense_data['Amount']) and 
+                    row[3] == expense_data['Category']):
+                    row_to_delete = i + 2  # +2 because we start from row 2 (after headers)
+                    break
+        
+        if row_to_delete is None:
+            return False, "Expense not found in Google Sheet"
+        
+        # Delete the row
+        service.spreadsheets().batch_update(
+            spreadsheetId=spreadsheet_id,
+            body={
+                'requests': [{
+                    'deleteDimension': {
+                        'range': {
+                            'sheetId': 0,
+                            'dimension': 'ROWS',
+                            'startIndex': row_to_delete - 1,
+                            'endIndex': row_to_delete
+                        }
+                    }
+                }]
+            }
+        ).execute()
+        
+        return True, "Expense deleted from Google Sheet successfully!"
+        
+    except HttpError as error:
+        return False, f"Google Sheets error: {error}"
+    except Exception as error:
+        return False, f"Error deleting expense: {error}"
