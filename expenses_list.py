@@ -59,17 +59,6 @@ if voice_text_input and st.sidebar.button("🤖 Parse with Gemini"):
         else:
             st.sidebar.error("❌ Could not parse the expense. Please try again or use manual input.")
 
-# Auto-fill form if we have parsed data
-if hasattr(st.session_state, 'parsed_item'):
-    expense_name = st.session_state.parsed_item
-    expense_amount = st.session_state.parsed_amount
-    expense_category = st.session_state.parsed_category
-    
-    # Clear the parsed data after using it
-    del st.session_state.parsed_item
-    del st.session_state.parsed_amount
-    del st.session_state.parsed_category
-
 # Voice input examples
 with st.sidebar.expander("💡 Voice Examples"):
     st.markdown("Try saying things like:")
@@ -81,9 +70,21 @@ st.sidebar.markdown("---")
 
 # Manual input fields
 st.sidebar.subheader("✏️ Manual Input")
-expense_name = st.sidebar.text_input("What did you buy?")
-expense_amount = st.sidebar.number_input("How much did it cost?", min_value=0.0, step=0.01, format="%.2f")
-expense_category = st.sidebar.selectbox("Category", ["Groceries", "Restaurants", "Cafeteria", "Transportation", "Entertainment", "Shopping", "Bills", "Donations", "Other"])
+
+# Auto-fill form if we have parsed data
+if hasattr(st.session_state, 'parsed_item'):
+    expense_name = st.sidebar.text_input("What did you buy?", value=st.session_state.parsed_item)
+    expense_amount = st.sidebar.number_input("How much did it cost?", min_value=0.0, step=0.01, format="%.2f", value=st.session_state.parsed_amount)
+    expense_category = st.sidebar.selectbox("Category", ["Groceries", "Restaurants", "Cafeteria", "Transportation", "Entertainment", "Shopping", "Bills", "Donations", "Other"], index=["Groceries", "Restaurants", "Cafeteria", "Transportation", "Entertainment", "Shopping", "Bills", "Donations", "Other"].index(st.session_state.parsed_category))
+    
+    # Clear the parsed data after using it
+    del st.session_state.parsed_item
+    del st.session_state.parsed_amount
+    del st.session_state.parsed_category
+else:
+    expense_name = st.sidebar.text_input("What did you buy?")
+    expense_amount = st.sidebar.number_input("How much did it cost?", min_value=0.0, step=0.01, format="%.2f")
+    expense_category = st.sidebar.selectbox("Category", ["Groceries", "Restaurants", "Cafeteria", "Transportation", "Entertainment", "Shopping", "Bills", "Donations", "Other"])
 
 # Add expense button
 if st.sidebar.button("Add Expense"):
