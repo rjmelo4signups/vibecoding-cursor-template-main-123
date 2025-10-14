@@ -41,49 +41,105 @@ st.sidebar.subheader("🎤 AI-Powered Input")
 st.sidebar.markdown("Describe your expense naturally:")
 
 # Text-based voice input (works immediately)
-voice_text_input = st.sidebar.text_input("Describe your expense:", placeholder="e.g., 'I spent 15 euros on lunch at the cafeteria'")
+voice_text_input = st.sidebar.text_input(
+    "Describe your expense:", 
+    placeholder="e.g., 'I spent 15 euros on lunch at the cafeteria'",
+    key="voice_input",
+    on_change=None
+)
 
-# Process text-based voice input
-if voice_text_input and st.sidebar.button("🤖 Parse with Gemini"):
-    with st.spinner("Parsing with Gemini..."):
-        parsed_expense = parse_expense_with_gemini(voice_text_input)
+# Process text-based voice input automatically when Enter is pressed
+if voice_text_input:
+    # Check if this is a new input (not from previous session)
+    if 'last_processed_input' not in st.session_state or st.session_state.last_processed_input != voice_text_input:
+        st.session_state.last_processed_input = voice_text_input
         
-        if parsed_expense:
-            st.sidebar.success("✅ Parsed successfully!")
-            st.sidebar.json(parsed_expense)
+        with st.spinner("Parsing with Gemini..."):
+            parsed_expense = parse_expense_with_gemini(voice_text_input)
             
-            # Automatically add the expense to the list
-            new_expense = {
-                "Date": datetime.now().strftime("%Y-%m-%d"),
-                "Item": parsed_expense['item'],
-                "Amount": parsed_expense['amount'],
-                "Category": parsed_expense['category']
-            }
-            
-            # Add to expenses list
-            st.session_state.expenses.append(new_expense)
-            
-            # Try to save to Google Sheets if configured
-            if SPREADSHEET_ID != "your-spreadsheet-id-here":
-                try:
-                    # Setup headers if needed
-                    setup_sheet_headers(SPREADSHEET_ID)
-                    
-                    # Append to Google Sheet
-                    success, message = append_expense_to_sheet(SPREADSHEET_ID, new_expense)
-                    if success:
-                        st.sidebar.success(f"✅ Added {parsed_expense['item']} for €{parsed_expense['amount']:.2f} and saved to Google Sheets!")
-                    else:
-                        st.sidebar.warning(f"⚠️ Added {parsed_expense['item']} for €{parsed_expense['amount']:.2f} (Google Sheets: {message})")
-                except Exception as e:
-                    st.sidebar.warning(f"⚠️ Added {parsed_expense['item']} for €{parsed_expense['amount']:.2f} (Google Sheets error: {str(e)})")
+            if parsed_expense:
+                st.sidebar.success("✅ Parsed successfully!")
+                st.sidebar.json(parsed_expense)
+                
+                # Automatically add the expense to the list
+                new_expense = {
+                    "Date": datetime.now().strftime("%Y-%m-%d"),
+                    "Item": parsed_expense['item'],
+                    "Amount": parsed_expense['amount'],
+                    "Category": parsed_expense['category']
+                }
+                
+                # Add to expenses list
+                st.session_state.expenses.append(new_expense)
+                
+                # Try to save to Google Sheets if configured
+                if SPREADSHEET_ID != "your-spreadsheet-id-here":
+                    try:
+                        # Setup headers if needed
+                        setup_sheet_headers(SPREADSHEET_ID)
+                        
+                        # Append to Google Sheet
+                        success, message = append_expense_to_sheet(SPREADSHEET_ID, new_expense)
+                        if success:
+                            st.sidebar.success(f"✅ Added {parsed_expense['item']} for €{parsed_expense['amount']:.2f} and saved to Google Sheets!")
+                        else:
+                            st.sidebar.warning(f"⚠️ Added {parsed_expense['item']} for €{parsed_expense['amount']:.2f} (Google Sheets: {message})")
+                    except Exception as e:
+                        st.sidebar.warning(f"⚠️ Added {parsed_expense['item']} for €{parsed_expense['amount']:.2f} (Google Sheets error: {str(e)})")
+                else:
+                    st.sidebar.success(f"✅ Added {parsed_expense['item']} for €{parsed_expense['amount']:.2f}!")
+                
+                # Clear the input field and reset processing state
+                st.session_state.last_processed_input = ""
+                st.rerun()
             else:
-                st.sidebar.success(f"✅ Added {parsed_expense['item']} for €{parsed_expense['amount']:.2f}!")
+                st.sidebar.error("❌ Could not parse the expense. Please try again or use manual input.")
+                st.session_state.last_processed_input = ""
+
+# Manual parse button as backup
+if st.sidebar.button("🤖 Parse with Gemini (Manual)"):
+    if voice_text_input:
+        with st.spinner("Parsing with Gemini..."):
+            parsed_expense = parse_expense_with_gemini(voice_text_input)
             
-            # Clear the input field
-            st.rerun()
-        else:
-            st.sidebar.error("❌ Could not parse the expense. Please try again or use manual input.")
+            if parsed_expense:
+                st.sidebar.success("✅ Parsed successfully!")
+                st.sidebar.json(parsed_expense)
+                
+                # Automatically add the expense to the list
+                new_expense = {
+                    "Date": datetime.now().strftime("%Y-%m-%d"),
+                    "Item": parsed_expense['item'],
+                    "Amount": parsed_expense['amount'],
+                    "Category": parsed_expense['category']
+                }
+                
+                # Add to expenses list
+                st.session_state.expenses.append(new_expense)
+                
+                # Try to save to Google Sheets if configured
+                if SPREADSHEET_ID != "your-spreadsheet-id-here":
+                    try:
+                        # Setup headers if needed
+                        setup_sheet_headers(SPREADSHEET_ID)
+                        
+                        # Append to Google Sheet
+                        success, message = append_expense_to_sheet(SPREADSHEET_ID, new_expense)
+                        if success:
+                            st.sidebar.success(f"✅ Added {parsed_expense['item']} for €{parsed_expense['amount']:.2f} and saved to Google Sheets!")
+                        else:
+                            st.sidebar.warning(f"⚠️ Added {parsed_expense['item']} for €{parsed_expense['amount']:.2f} (Google Sheets: {message})")
+                    except Exception as e:
+                        st.sidebar.warning(f"⚠️ Added {parsed_expense['item']} for €{parsed_expense['amount']:.2f} (Google Sheets error: {str(e)})")
+                else:
+                    st.sidebar.success(f"✅ Added {parsed_expense['item']} for €{parsed_expense['amount']:.2f}!")
+                
+                # Clear the input field
+                st.rerun()
+            else:
+                st.sidebar.error("❌ Could not parse the expense. Please try again or use manual input.")
+    else:
+        st.sidebar.warning("Please enter a description first!")
 
 # Voice input examples
 with st.sidebar.expander("💡 Voice Examples"):
@@ -141,22 +197,51 @@ if st.session_state.expenses:
     df = pd.DataFrame(st.session_state.expenses)
     
     # Display expenses table with delete buttons
-    st.subheader("Your Expenses")
+    st.subheader("📋 Your Expenses")
+    
+    # Create header row
+    header_col1, header_col2, header_col3, header_col4, header_col5 = st.columns([2, 1, 1, 1, 1])
+    with header_col1:
+        st.markdown("**Item**")
+    with header_col2:
+        st.markdown("**Amount**")
+    with header_col3:
+        st.markdown("**Category**")
+    with header_col4:
+        st.markdown("**Date**")
+    with header_col5:
+        st.markdown("**Action**")
+    
+    # Add a subtle divider
+    st.markdown("---")
     
     # Create a custom display with delete buttons
     for i, expense in enumerate(st.session_state.expenses):
         col1, col2, col3, col4, col5 = st.columns([2, 1, 1, 1, 1])
         
         with col1:
-            st.write(f"**{expense['Item']}**")
+            st.write(f"📦 {expense['Item']}")
         with col2:
-            st.write(f"€{expense['Amount']:.2f}")
+            st.write(f"💰 €{expense['Amount']:.2f}")
         with col3:
-            st.write(expense['Category'])
+            # Add category emoji for better visual appeal
+            category_emojis = {
+                "Groceries": "🛒",
+                "Restaurants": "🍽️", 
+                "Cafeteria": "☕",
+                "Transportation": "🚌",
+                "Entertainment": "🎬",
+                "Shopping": "🛍️",
+                "Bills": "📄",
+                "Donations": "❤️",
+                "Other": "📝"
+            }
+            emoji = category_emojis.get(expense['Category'], "📝")
+            st.write(f"{emoji} {expense['Category']}")
         with col4:
-            st.write(expense['Date'])
+            st.write(f"📅 {expense['Date']}")
         with col5:
-            if st.button("🗑️", key=f"delete_{i}", help="Delete this expense"):
+            if st.button("🗑️", key=f"delete_{i}", help="Delete this expense", type="secondary"):
                 # Delete from local list
                 del st.session_state.expenses[i]
                 
@@ -175,7 +260,9 @@ if st.session_state.expenses:
                 
                 st.rerun()
         
-        st.divider()
+        # Add a subtle separator between rows
+        if i < len(st.session_state.expenses) - 1:
+            st.markdown("---")
     
     # Calculate and display total
     total_spent = df['Amount'].sum()

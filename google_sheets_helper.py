@@ -221,40 +221,44 @@ def delete_expense_from_sheet(spreadsheet_id, expense_data):
         # Get all data from the sheet
         result = service.spreadsheets().values().get(
             spreadsheetId=spreadsheet_id,
-            range='Sheet1!A2:D'
+            range='Sheet1!A:D'
         ).execute()
         
         values = result.get('values', [])
         
-        # Find the row to delete
+        # Find the row to delete (search through all rows including headers)
         row_to_delete = None
         for i, row in enumerate(values):
             if len(row) >= 4:
-                if (row[0] == expense_data['Date'] and 
+                # Check if this row matches our expense (skip header row)
+                if (i > 0 and  # Skip header row
+                    row[0] == expense_data['Date'] and 
                     row[1] == expense_data['Item'] and 
                     str(row[2]) == str(expense_data['Amount']) and 
                     row[3] == expense_data['Category']):
-                    row_to_delete = i + 2  # +2 because we start from row 2 (after headers)
+                    row_to_delete = i + 1  # +1 because Google Sheets uses 1-based indexing
                     break
         
         if row_to_delete is None:
             return False, "Expense not found in Google Sheet"
         
-        # Delete the row
+        # Delete the row using the correct method
+        request_body = {
+            'requests': [{
+                'deleteDimension': {
+                    'range': {
+                        'sheetId': 0,
+                        'dimension': 'ROWS',
+                        'startIndex': row_to_delete - 1,  # Convert to 0-based index
+                        'endIndex': row_to_delete
+                    }
+                }
+            }]
+        }
+        
         service.spreadsheets().batch_update(
             spreadsheetId=spreadsheet_id,
-            body={
-                'requests': [{
-                    'deleteDimension': {
-                        'range': {
-                            'sheetId': 0,
-                            'dimension': 'ROWS',
-                            'startIndex': row_to_delete - 1,
-                            'endIndex': row_to_delete
-                        }
-                    }
-                }]
-            }
+            body=request_body
         ).execute()
         
         return True, "Expense deleted from Google Sheet successfully!"
