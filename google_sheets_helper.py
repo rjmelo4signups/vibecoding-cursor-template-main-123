@@ -177,3 +177,29 @@ def load_expenses_from_sheet(spreadsheet_id):
         return False, f"Google Sheets error: {error}"
     except Exception as error:
         return False, f"Error loading expenses: {error}"
+
+def clear_all_expenses_from_sheet(spreadsheet_id):
+    """
+    Clear all expense data from Google Sheet (keep headers).
+    
+    Args:
+        spreadsheet_id: The ID of the Google Sheet
+        
+    Returns:
+        Tuple of (success, message)
+    """
+    try:
+        service = get_google_sheets_service()
+        
+        # Clear all data except headers (rows 2 onwards)
+        service.spreadsheets().values().clear(
+            spreadsheetId=spreadsheet_id,
+            range='Sheet1!A2:D'
+        ).execute()
+        
+        return True, "All expenses cleared from Google Sheet successfully!"
+        
+    except HttpError as error:
+        return False, f"Google Sheets error: {error}"
+    except Exception as error:
+        return False, f"Error clearing expenses: {error}"

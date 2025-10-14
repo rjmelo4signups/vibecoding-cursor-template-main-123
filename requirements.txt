@@ -9,6 +9,7 @@ yt-dlp
 
 # Streamlit
 streamlit
+plotly
 
 # Google Sheets integration
 google-auth
