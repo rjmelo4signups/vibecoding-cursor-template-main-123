@@ -29,6 +29,7 @@ def parse_expense_with_gemini(transcribed_text):
         
         # Try different model names
         model_names_to_try = [
+            'gemini-2.5-flash',
             'gemini-1.5-flash',
             'gemini-1.5-flash-001', 
             'gemini-1.5-pro',
