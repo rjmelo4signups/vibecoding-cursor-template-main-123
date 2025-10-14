@@ -48,98 +48,48 @@ voice_text_input = st.sidebar.text_input(
     on_change=None
 )
 
-# Process text-based voice input automatically when Enter is pressed
-if voice_text_input:
-    # Check if this is a new input (not from previous session)
-    if 'last_processed_input' not in st.session_state or st.session_state.last_processed_input != voice_text_input:
-        st.session_state.last_processed_input = voice_text_input
+# Process text-based voice input when button is clicked
+if voice_text_input and st.sidebar.button("🤖 Parse with Gemini"):
+    with st.spinner("Parsing with Gemini..."):
+        parsed_expense = parse_expense_with_gemini(voice_text_input)
         
-        with st.spinner("Parsing with Gemini..."):
-            parsed_expense = parse_expense_with_gemini(voice_text_input)
+        if parsed_expense:
+            st.sidebar.success("✅ Parsed successfully!")
+            st.sidebar.json(parsed_expense)
             
-            if parsed_expense:
-                st.sidebar.success("✅ Parsed successfully!")
-                st.sidebar.json(parsed_expense)
-                
-                # Automatically add the expense to the list
-                new_expense = {
-                    "Date": datetime.now().strftime("%Y-%m-%d"),
-                    "Item": parsed_expense['item'],
-                    "Amount": parsed_expense['amount'],
-                    "Category": parsed_expense['category']
-                }
-                
-                # Add to expenses list
-                st.session_state.expenses.append(new_expense)
-                
-                # Try to save to Google Sheets if configured
-                if SPREADSHEET_ID != "your-spreadsheet-id-here":
-                    try:
-                        # Setup headers if needed
-                        setup_sheet_headers(SPREADSHEET_ID)
-                        
-                        # Append to Google Sheet
-                        success, message = append_expense_to_sheet(SPREADSHEET_ID, new_expense)
-                        if success:
-                            st.sidebar.success(f"✅ Added {parsed_expense['item']} for €{parsed_expense['amount']:.2f} and saved to Google Sheets!")
-                        else:
-                            st.sidebar.warning(f"⚠️ Added {parsed_expense['item']} for €{parsed_expense['amount']:.2f} (Google Sheets: {message})")
-                    except Exception as e:
-                        st.sidebar.warning(f"⚠️ Added {parsed_expense['item']} for €{parsed_expense['amount']:.2f} (Google Sheets error: {str(e)})")
-                else:
-                    st.sidebar.success(f"✅ Added {parsed_expense['item']} for €{parsed_expense['amount']:.2f}!")
-                
-                # Clear the input field and reset processing state
-                st.session_state.last_processed_input = ""
-                st.rerun()
+            # Automatically add the expense to the list
+            new_expense = {
+                "Date": datetime.now().strftime("%Y-%m-%d"),
+                "Item": parsed_expense['item'],
+                "Amount": parsed_expense['amount'],
+                "Category": parsed_expense['category']
+            }
+            
+            # Add to expenses list
+            st.session_state.expenses.append(new_expense)
+            
+            # Try to save to Google Sheets if configured
+            if SPREADSHEET_ID != "your-spreadsheet-id-here":
+                try:
+                    # Setup headers if needed
+                    setup_sheet_headers(SPREADSHEET_ID)
+                    
+                    # Append to Google Sheet
+                    success, message = append_expense_to_sheet(SPREADSHEET_ID, new_expense)
+                    if success:
+                        st.sidebar.success(f"✅ Added {parsed_expense['item']} for €{parsed_expense['amount']:.2f} and saved to Google Sheets!")
+                    else:
+                        st.sidebar.warning(f"⚠️ Added {parsed_expense['item']} for €{parsed_expense['amount']:.2f} (Google Sheets: {message})")
+                except Exception as e:
+                    st.sidebar.warning(f"⚠️ Added {parsed_expense['item']} for €{parsed_expense['amount']:.2f} (Google Sheets error: {str(e)})")
             else:
-                st.sidebar.error("❌ Could not parse the expense. Please try again or use manual input.")
-                st.session_state.last_processed_input = ""
+                st.sidebar.success(f"✅ Added {parsed_expense['item']} for €{parsed_expense['amount']:.2f}!")
+            
+            # Clear the input field
+            st.rerun()
+        else:
+            st.sidebar.error("❌ Could not parse the expense. Please try again or use manual input.")
 
-# Manual parse button as backup
-if st.sidebar.button("🤖 Parse with Gemini (Manual)"):
-    if voice_text_input:
-        with st.spinner("Parsing with Gemini..."):
-            parsed_expense = parse_expense_with_gemini(voice_text_input)
-            
-            if parsed_expense:
-                st.sidebar.success("✅ Parsed successfully!")
-                st.sidebar.json(parsed_expense)
-                
-                # Automatically add the expense to the list
-                new_expense = {
-                    "Date": datetime.now().strftime("%Y-%m-%d"),
-                    "Item": parsed_expense['item'],
-                    "Amount": parsed_expense['amount'],
-                    "Category": parsed_expense['category']
-                }
-                
-                # Add to expenses list
-                st.session_state.expenses.append(new_expense)
-                
-                # Try to save to Google Sheets if configured
-                if SPREADSHEET_ID != "your-spreadsheet-id-here":
-                    try:
-                        # Setup headers if needed
-                        setup_sheet_headers(SPREADSHEET_ID)
-                        
-                        # Append to Google Sheet
-                        success, message = append_expense_to_sheet(SPREADSHEET_ID, new_expense)
-                        if success:
-                            st.sidebar.success(f"✅ Added {parsed_expense['item']} for €{parsed_expense['amount']:.2f} and saved to Google Sheets!")
-                        else:
-                            st.sidebar.warning(f"⚠️ Added {parsed_expense['item']} for €{parsed_expense['amount']:.2f} (Google Sheets: {message})")
-                    except Exception as e:
-                        st.sidebar.warning(f"⚠️ Added {parsed_expense['item']} for €{parsed_expense['amount']:.2f} (Google Sheets error: {str(e)})")
-                else:
-                    st.sidebar.success(f"✅ Added {parsed_expense['item']} for €{parsed_expense['amount']:.2f}!")
-                
-                # Clear the input field
-                st.rerun()
-            else:
-                st.sidebar.error("❌ Could not parse the expense. Please try again or use manual input.")
-    else:
-        st.sidebar.warning("Please enter a description first!")
 
 # Voice input examples
 with st.sidebar.expander("💡 Voice Examples"):

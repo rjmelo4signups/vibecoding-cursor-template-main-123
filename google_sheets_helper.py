@@ -242,12 +242,17 @@ def delete_expense_from_sheet(spreadsheet_id, expense_data):
         if row_to_delete is None:
             return False, "Expense not found in Google Sheet"
         
-        # Delete the row using the correct method
+        # Use a simpler approach - clear the specific row and shift up
+        # First, get the sheet info to get the correct sheet ID
+        sheet_metadata = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+        sheet_id = sheet_metadata['sheets'][0]['properties']['sheetId']
+        
+        # Delete the row
         request_body = {
             'requests': [{
                 'deleteDimension': {
                     'range': {
-                        'sheetId': 0,
+                        'sheetId': sheet_id,
                         'dimension': 'ROWS',
                         'startIndex': row_to_delete - 1,  # Convert to 0-based index
                         'endIndex': row_to_delete
