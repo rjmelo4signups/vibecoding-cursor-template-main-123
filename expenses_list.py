@@ -119,7 +119,10 @@ if st.session_state.expenses:
     
     # Clear all expenses button with confirmation
     if st.button("🗑️ Clear All Expenses", type="secondary"):
-        # Show confirmation dialog
+        st.session_state.show_clear_confirmation = True
+    
+    # Show confirmation dialog if needed
+    if st.session_state.get('show_clear_confirmation', False):
         st.warning("⚠️ This will delete ALL expenses from both the app and Google Sheets!")
         
         col1, col2 = st.columns(2)
@@ -141,11 +144,15 @@ if st.session_state.expenses:
                 else:
                     st.success("✅ All expenses cleared from app!")
                 
+                # Reset confirmation state
+                st.session_state.show_clear_confirmation = False
                 st.rerun()
         
         with col2:
             if st.button("❌ Cancel"):
+                st.session_state.show_clear_confirmation = False
                 st.info("Clear operation cancelled.")
+                st.rerun()
         
 else:
     st.info("No expenses added yet. Use the sidebar to add your first expense!")
