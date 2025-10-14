@@ -11,6 +11,9 @@ yt-dlp
 streamlit
 plotly
 
+# Voice input and AI
+google-generativeai
+
 # Google Sheets integration
 google-auth
 google-auth-oauthlib

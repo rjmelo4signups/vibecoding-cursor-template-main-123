@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 from google_sheets_helper import append_expense_to_sheet, setup_sheet_headers, load_expenses_from_sheet, clear_all_expenses_from_sheet
+from voice_parser import parse_expense_with_gemini, get_voice_input_examples
+# Audio recording will be added in future versions
 
 # Set page title
 st.title("💰 Expenses List")
@@ -34,7 +36,51 @@ if 'data_loaded' not in st.session_state:
 # Sidebar for adding new expenses
 st.sidebar.header("Add New Expense")
 
-# Input fields for new expense
+# Voice input section
+st.sidebar.subheader("🎤 AI-Powered Input")
+st.sidebar.markdown("Describe your expense naturally:")
+
+# Text-based voice input (works immediately)
+voice_text_input = st.sidebar.text_input("Describe your expense:", placeholder="e.g., 'I spent 15 euros on lunch at the cafeteria'")
+
+# Process text-based voice input
+if voice_text_input and st.sidebar.button("🤖 Parse with Gemini"):
+    with st.sidebar.spinner("Parsing with Gemini..."):
+        parsed_expense = parse_expense_with_gemini(voice_text_input)
+        
+        if parsed_expense:
+            st.sidebar.success("✅ Parsed successfully!")
+            st.sidebar.json(parsed_expense)
+            
+            # Auto-fill the form with parsed data
+            st.session_state.parsed_item = parsed_expense['item']
+            st.session_state.parsed_amount = parsed_expense['amount']
+            st.session_state.parsed_category = parsed_expense['category']
+        else:
+            st.sidebar.error("❌ Could not parse the expense. Please try again or use manual input.")
+
+# Auto-fill form if we have parsed data
+if hasattr(st.session_state, 'parsed_item'):
+    expense_name = st.session_state.parsed_item
+    expense_amount = st.session_state.parsed_amount
+    expense_category = st.session_state.parsed_category
+    
+    # Clear the parsed data after using it
+    del st.session_state.parsed_item
+    del st.session_state.parsed_amount
+    del st.session_state.parsed_category
+
+# Voice input examples
+with st.sidebar.expander("💡 Voice Examples"):
+    st.markdown("Try saying things like:")
+    examples = get_voice_input_examples()
+    for example in examples[:4]:  # Show first 4 examples
+        st.markdown(f"• \"{example}\"")
+
+st.sidebar.markdown("---")
+
+# Manual input fields
+st.sidebar.subheader("✏️ Manual Input")
 expense_name = st.sidebar.text_input("What did you buy?")
 expense_amount = st.sidebar.number_input("How much did it cost?", min_value=0.0, step=0.01, format="%.2f")
 expense_category = st.sidebar.selectbox("Category", ["Groceries", "Restaurants", "Cafeteria", "Transportation", "Entertainment", "Shopping", "Bills", "Donations", "Other"])
