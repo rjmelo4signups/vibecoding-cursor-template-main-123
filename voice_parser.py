@@ -18,7 +18,7 @@ def parse_expense_with_gemini(transcribed_text):
             return None
             
         genai.configure(api_key=st.secrets.GEMINI_API_KEY)
-        model = genai.GenerativeModel('gemini-pro')
+        model = genai.GenerativeModel('gemini-1.5-flash')
         
         # Create prompt for Gemini
         prompt = f"""
