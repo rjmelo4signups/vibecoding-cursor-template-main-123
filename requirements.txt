@@ -15,7 +15,7 @@ plotly
 google-generativeai
 
 # Google Sheets integration
-google-auth
-google-auth-oauthlib
-google-auth-httplib2
 google-api-python-client
+google-auth-oauthlib
+google-auth
+google-auth-httplib2
