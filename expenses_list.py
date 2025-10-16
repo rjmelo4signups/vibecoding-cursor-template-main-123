@@ -36,6 +36,9 @@ if 'data_loaded' not in st.session_state:
 # Sidebar for adding new expenses
 st.sidebar.header("Add New Expense")
 
+# Debug toggle
+st.sidebar.checkbox("Enable debug logs", key="debug_logs")
+
 # Voice input section
 st.sidebar.subheader("🎤 AI-Powered Input")
 st.sidebar.markdown("Describe your expense naturally:")
@@ -202,7 +205,7 @@ if st.session_state.expenses:
                 # Delete from Google Sheets if configured
                 if SPREADSHEET_ID != "your-spreadsheet-id-here":
                     try:
-                        success, message = delete_expense_from_sheet(SPREADSHEET_ID, expense)
+                        success, message = delete_expense_from_sheet(SPREADSHEET_ID, expense, debug=bool(st.session_state.get("debug_logs", False)))
                         if success:
                             st.success(f"✅ Deleted {expense['Item']} from both app and Google Sheets!")
                         else:

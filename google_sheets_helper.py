@@ -220,7 +220,7 @@ def clear_all_expenses_from_sheet(spreadsheet_id):
     except Exception as error:
         return False, f"Error clearing expenses: {error}"
 
-def delete_expense_from_sheet(spreadsheet_id, expense_data):
+def delete_expense_from_sheet(spreadsheet_id, expense_data, debug: bool = False):
     """
     Delete a specific expense from Google Sheet by finding and removing the row.
     
@@ -241,6 +241,12 @@ def delete_expense_from_sheet(spreadsheet_id, expense_data):
         ).execute()
         
         values = result.get('values', [])
+        if debug:
+            try:
+                st.write("[DEBUG] Loaded rows:", len(values))
+                st.write("[DEBUG] Sample rows:", values[:5])
+            except Exception:
+                pass
         
         # Find the row to delete (search through all rows including headers)
         row_to_delete = None
@@ -250,24 +256,59 @@ def delete_expense_from_sheet(spreadsheet_id, expense_data):
                 if i == 0:
                     continue  # Skip header row
                 # Prefer exact match on Timestamp if both payload and row include it
-                if has_ts and len(row) >= 5 and str(row[4]) == str(expense_data['Timestamp']):
+                if has_ts and len(row) >= 5 and str(row[4]).strip() == str(expense_data['Timestamp']).strip():
                     row_to_delete = i + 1
                     break
                 # Fallback legacy match if no Timestamp or not found
+                # Normalize amount for robust comparison
+                amt_row = None
+                try:
+                    amt_row = float(str(row[2]).replace(',', '.'))
+                except Exception:
+                    pass
+                amt_payload = None
+                try:
+                    amt_payload = float(str(expense_data['Amount']).replace(',', '.'))
+                except Exception:
+                    pass
+                amount_matches = False
+                if amt_row is not None and amt_payload is not None:
+                    amount_matches = abs(amt_row - amt_payload) < 0.005
+                else:
+                    amount_matches = str(row[2]) == str(expense_data['Amount'])
+
                 if (row[0] == expense_data['Date'] and 
                     row[1] == expense_data['Item'] and 
-                    str(row[2]) == str(expense_data['Amount']) and 
+                    amount_matches and 
                     row[3] == expense_data['Category']):
                     row_to_delete = i + 1  # +1 because Google Sheets uses 1-based indexing
                     break
         
         if row_to_delete is None:
+            if debug:
+                try:
+                    st.write("[DEBUG] No matching row found for:", expense_data)
+                except Exception:
+                    pass
             return False, "Expense not found in Google Sheet"
         
         # Use a simpler approach - clear the specific row and shift up
         # First, get the sheet info to get the correct sheet ID
         sheet_metadata = service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
-        sheet_id = sheet_metadata['sheets'][0]['properties']['sheetId']
+        # Prefer the sheet titled 'Sheet1', else fallback to the first sheet
+        sheet_id = None
+        for s in sheet_metadata.get('sheets', []):
+            props = s.get('properties', {})
+            if props.get('title') == 'Sheet1':
+                sheet_id = props.get('sheetId')
+                break
+        if sheet_id is None and sheet_metadata.get('sheets'):
+            sheet_id = sheet_metadata['sheets'][0]['properties']['sheetId']
+        if debug:
+            try:
+                st.write("[DEBUG] Using sheet_id:", sheet_id, "for deletion at row", row_to_delete)
+            except Exception:
+                pass
         
         # Delete the row
         request_body = {
