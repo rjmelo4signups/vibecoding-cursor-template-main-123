@@ -62,7 +62,9 @@ if voice_text_input and st.sidebar.button("🤖 Parse with Gemini"):
                 "Date": datetime.now().strftime("%Y-%m-%d"),
                 "Item": parsed_expense['item'],
                 "Amount": parsed_expense['amount'],
-                "Category": parsed_expense['category']
+                "Category": parsed_expense['category'],
+                # Hidden unique key for precise deletes in Google Sheets
+                "Timestamp": datetime.now().isoformat(timespec='milliseconds')
             }
             
             # Add to expenses list
@@ -114,7 +116,9 @@ if st.sidebar.button("Add Expense"):
             "Date": datetime.now().strftime("%Y-%m-%d"),
             "Item": expense_name,
             "Amount": expense_amount,
-            "Category": expense_category
+            "Category": expense_category,
+            # Hidden unique key for precise deletes in Google Sheets
+            "Timestamp": datetime.now().isoformat(timespec='milliseconds')
         }
         
         # Add to expenses list

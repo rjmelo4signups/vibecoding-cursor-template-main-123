@@ -81,7 +81,9 @@ def append_expense_to_sheet(spreadsheet_id, expense_data):
                 expense_data['Date'],
                 expense_data['Item'],
                 expense_data['Amount'],
-                expense_data['Category']
+                expense_data['Category'],
+                # Use Timestamp if provided; else leave blank for backward compatibility
+                expense_data.get('Timestamp', '')
             ]
         ]
         
@@ -92,7 +94,7 @@ def append_expense_to_sheet(spreadsheet_id, expense_data):
         
         result = service.spreadsheets().values().append(
             spreadsheetId=spreadsheet_id,
-            range='Sheet1!A:D',  # Adjust range as needed
+            range='Sheet1!A:E',  # Include Timestamp column
             valueInputOption='USER_ENTERED',
             body=body
         ).execute()
@@ -114,24 +116,35 @@ def setup_sheet_headers(spreadsheet_id):
         # Check if the sheet has headers
         result = service.spreadsheets().values().get(
             spreadsheetId=spreadsheet_id,
-            range='Sheet1!A1:D1'
+            range='Sheet1!A1:E1'
         ).execute()
         
         values = result.get('values', [])
         
-        # If no headers exist, add them
+        # If no headers exist, add them (now including Timestamp)
         if not values:
-            header_values = [['Date', 'Item', 'Amount', 'Category']]
+            header_values = [['Date', 'Item', 'Amount', 'Category', 'Timestamp']]
             body = {
                 'values': header_values
             }
             
             service.spreadsheets().values().update(
                 spreadsheetId=spreadsheet_id,
-                range='Sheet1!A1:D1',
+                range='Sheet1!A1:E1',
                 valueInputOption='USER_ENTERED',
                 body=body
             ).execute()
+        else:
+            # If headers exist but Timestamp column is missing, extend headers to include it
+            existing_headers = values[0]
+            if 'Timestamp' not in existing_headers:
+                # Append Timestamp header in column E
+                service.spreadsheets().values().update(
+                    spreadsheetId=spreadsheet_id,
+                    range='Sheet1!E1',
+                    valueInputOption='USER_ENTERED',
+                    body={'values': [['Timestamp']]}
+                ).execute()
             
         return True, "Sheet headers set up successfully!"
         
@@ -154,7 +167,7 @@ def load_expenses_from_sheet(spreadsheet_id):
         # Get all data from the sheet (starting from row 2 to skip headers)
         result = service.spreadsheets().values().get(
             spreadsheetId=spreadsheet_id,
-            range='Sheet1!A2:D'  # Skip header row
+            range='Sheet1!A2:E'  # Skip header row, include Timestamp
         ).execute()
         
         values = result.get('values', [])
@@ -162,13 +175,16 @@ def load_expenses_from_sheet(spreadsheet_id):
         # Convert to list of dictionaries
         expenses = []
         for row in values:
-            if len(row) >= 4:  # Make sure we have all 4 columns
+            if len(row) >= 4:  # Make sure we have base 4 columns
                 expense = {
                     "Date": row[0],
                     "Item": row[1],
                     "Amount": float(row[2]) if row[2] else 0.0,
                     "Category": row[3]
                 }
+                # Optionally include Timestamp if present (column E)
+                if len(row) >= 5 and row[4]:
+                    expense["Timestamp"] = row[4]
                 expenses.append(expense)
         
         return True, expenses
@@ -194,7 +210,7 @@ def clear_all_expenses_from_sheet(spreadsheet_id):
         # Clear all data except headers (rows 2 onwards)
         service.spreadsheets().values().clear(
             spreadsheetId=spreadsheet_id,
-            range='Sheet1!A2:D'
+            range='Sheet1!A2:E'
         ).execute()
         
         return True, "All expenses cleared from Google Sheet successfully!"
@@ -221,18 +237,24 @@ def delete_expense_from_sheet(spreadsheet_id, expense_data):
         # Get all data from the sheet
         result = service.spreadsheets().values().get(
             spreadsheetId=spreadsheet_id,
-            range='Sheet1!A:D'
+            range='Sheet1!A:E'
         ).execute()
         
         values = result.get('values', [])
         
         # Find the row to delete (search through all rows including headers)
         row_to_delete = None
+        has_ts = 'Timestamp' in expense_data and str(expense_data.get('Timestamp', '')).strip() != ''
         for i, row in enumerate(values):
             if len(row) >= 4:
-                # Check if this row matches our expense (skip header row)
-                if (i > 0 and  # Skip header row
-                    row[0] == expense_data['Date'] and 
+                if i == 0:
+                    continue  # Skip header row
+                # Prefer exact match on Timestamp if both payload and row include it
+                if has_ts and len(row) >= 5 and str(row[4]) == str(expense_data['Timestamp']):
+                    row_to_delete = i + 1
+                    break
+                # Fallback legacy match if no Timestamp or not found
+                if (row[0] == expense_data['Date'] and 
                     row[1] == expense_data['Item'] and 
                     str(row[2]) == str(expense_data['Amount']) and 
                     row[3] == expense_data['Category']):
