@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import datetime
 from google_sheets_helper import append_expense_to_sheet, setup_sheet_headers, load_expenses_from_sheet, clear_all_expenses_from_sheet, delete_expense_from_sheet
 from voice_parser import parse_expense_with_gemini, get_voice_input_examples
+import time
 # Audio recording will be added in future versions
 
 # Set page title
