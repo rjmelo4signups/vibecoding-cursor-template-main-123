@@ -217,7 +217,6 @@ if st.session_state.expenses:
                     st.success(f"✅ Deleted {expense['Item']} from app!")
                 
 
-                time.sleep(15) # remove this after testing!
                 st.rerun()
         
         # Add a subtle separator between rows
