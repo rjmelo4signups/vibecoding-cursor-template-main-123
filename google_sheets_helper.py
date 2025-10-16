@@ -233,7 +233,10 @@ def delete_expense_from_sheet(spreadsheet_id, expense_data, debug: bool = False)
     """
     try:
         service = get_google_sheets_service()
-        
+
+        if service is None:
+            return False, "Failed to initialize Google Sheets service."
+            
         # Get all data from the sheet
         result = service.spreadsheets().values().get(
             spreadsheetId=spreadsheet_id,
