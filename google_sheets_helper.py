@@ -236,7 +236,7 @@ def delete_expense_from_sheet(spreadsheet_id, expense_data, debug: bool = False)
 
         if service is None:
             return False, "Failed to initialize Google Sheets service."
-            
+
         # Get all data from the sheet
         result = service.spreadsheets().values().get(
             spreadsheetId=spreadsheet_id,
@@ -326,11 +326,30 @@ def delete_expense_from_sheet(spreadsheet_id, expense_data, debug: bool = False)
                 }
             }]
         }
+        # trying out a Gemini approach
+        # 1. Get the Spreadsheet Resource Object
+        spreadsheet_resource = service.spreadsheets()
         
-        service.spreadsheets().batch_update(
+        # 2. DEBUG: Check if the method exists on this object
+        if not hasattr(spreadsheet_resource, 'batch_update'):
+            # This check will likely confirm the error, but helps you see it explicitly
+            # If you can print here, print type(spreadsheet_resource)
+            try:
+                if debug: st.write(f"[DEBUG] Type of resource: {type(spreadsheet_resource)}")
+            except NameError: pass
+            
+            return False, "Configuration Error: The 'sheets' service object does not contain 'batch_update'."
+
+        # 3. Call batch_update on the stored resource object
+        spreadsheet_resource.batch_update(
             spreadsheetId=spreadsheet_id,
             body=request_body
         ).execute()
+
+#        service.spreadsheets().batch_update(
+#            spreadsheetId=spreadsheet_id,
+#            body=request_body
+#        ).execute()
         
         return True, "Expense deleted from Google Sheet successfully!"
         
