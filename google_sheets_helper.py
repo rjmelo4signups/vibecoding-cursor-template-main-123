@@ -9,6 +9,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 import streamlit as st
 
+
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
@@ -357,3 +358,4 @@ def delete_expense_from_sheet(spreadsheet_id, expense_data, debug: bool = False)
         return False, f"Google Sheets error: {error}"
     except Exception as error:
         return False, f"Error deleting expense: {error}"
+
